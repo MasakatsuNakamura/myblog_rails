@@ -1,27 +1,65 @@
 version: '2'
 services:
-  rails: &app_base
-    build:
-      context: .
-      dockerfile: "Dockerfile.dev"
+  web: #&app_base
+#    build:
+#      context: .
+#      dockerfile: "Dockerfile.dev"
+    image: 081979565122.dkr.ecr.ap-northeast-1.amazonaws.com/myblog:latest
     command: "bundle exec rails s -p 3000 -b 0.0.0.0"
-    env_file:
-      - "./.env.dev"
-    volumes:
-      - ".:/app"
+#    volumes:
+#      - ".:/app"
+#    volumes_from:
+#      - data
     ports:
       - "3000:3000"
-  spring:
-    <<: *app_base
-    command: ["bundle", "exec", "spring", "server"]
-    ports: []
-    tty: false
-    stdin_open: false
-  data:
-    image: "busybox"
-    volumes:
-      - "bundle:/usr/local/bundle"
+    environment:
+      - "DATABASE_HOST=127.0.0.1"
+      - "DATABASE_PORT=5432"
+      - "DATABASE_USER=postgres"
+      - "DATABASE_PASSWORD=password"
+#    depends_on:
+#      - db
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/myblog
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: web
 
-volumes:
-  bundle:
-    driver: local
+#  spring:
+#    <<: *app_base
+#    command: ["bundle", "exec", "spring", "server"]
+#    ports: []
+#    tty: false
+#    stdin_open: false
+  db:
+    image: postgres:10.3
+    environment:
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=password"
+#    volumes_from:
+#      - data
+    ports:
+      - "5432:5432"
+#    volumes:
+#      - postgres-data:/var/lib/postgres/data
+#  data:
+#    image: "busybox"
+#    volumes:
+#      - "db:/var/lib/postgresql/data"
+#      - "bundle:/usr/local/bundle"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/myblog
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: db
+
+#volumes:
+#  db:
+#    driver: local
+#  bundle:
+#    driver: local
+# volumes:
+#   postgres-data:
+  

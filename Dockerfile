@@ -28,6 +28,8 @@ RUN mkdir /app
 
 WORKDIR /app
 
+ADD . /app
+
 RUN bundle config build.nokogiri --use-system-libraries
 
 ENTRYPOINT [ \
