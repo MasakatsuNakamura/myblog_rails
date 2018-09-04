@@ -30,8 +30,11 @@ WORKDIR /app
 
 ADD . /app
 
-RUN bundle config build.nokogiri --use-system-libraries
+ENV RAILS_ENV=production
 
-ENTRYPOINT [ \
-    "prehook", "ruby -v", "--", \
-    "prehook", "bundle install -j3 --quiet", "--"]
+RUN bundle config build.nokogiri --use-system-libraries
+RUN bundle install
+RUN DB_ADAPTER=nulldb bundle exec rake -t assets:precompile
+VOLUME /app
+
+CMD ["bundle", "exec", "pumactl", "start"]

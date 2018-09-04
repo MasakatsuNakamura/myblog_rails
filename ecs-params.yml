@@ -8,8 +8,10 @@ task_definition:
     mem_limit: 1024
   services:
     web:
-      essential: true
+      essential: false
     db:
+      essential: false
+    nginx:
       essential: true
 run_params:
   network_configuration:
