@@ -3,21 +3,22 @@ version: '2'
 services:
 
   nginx:
-    build:
-      context: .
-      dockerfile: "Dockerfile.nginx"
+    image: 081979565122.dkr.ecr.ap-northeast-1.amazonaws.com/myblog_nginx:latest
     ports:
       - "80:80"
     volumes_from:
       - web
     logging:
-      driver: json-file
-
+      driver: awslogs
+      options:
+        awslogs-group: "/ecs/myblog"
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: nginx
   web: #&app_base
-    build: .
-    command: "bundle exec pumactl start"
-    volumes:
-      - ".:/app"
+    image: 081979565122.dkr.ecr.ap-northeast-1.amazonaws.com/myblog:latest
+    command: sh -c "bundle exec rake db:create && bundle exec rake db:migrate && bundle exec rake db:seed && bundle exec puma"
+#    volumes:
+#      - ".:/app"
 #    volumes_from:
 #      - data
     environment:
@@ -26,12 +27,16 @@ services:
       DATABASE_PORT: 5432
       DATABASE_USER: postgres
       DATABASE_PASSWORD: password
-    depends_on:
-      - db
+#    depends_on:
+#      - db
     links:
       - db
     logging:
-      driver: json-file
+      driver: awslogs
+      options:
+        awslogs-group: "/ecs/myblog"
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: rails
 
 #  spring:
 #    <<: *app_base
@@ -57,7 +62,11 @@ services:
 #      - "db:/var/lib/postgresql/data"
 #      - "bundle:/usr/local/bundle"
     logging:
-      driver: json-file
+      driver: awslogs
+      options:
+        awslogs-group: "/ecs/myblog"
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: db
 #volumes:
 #  db:
 #    driver: local

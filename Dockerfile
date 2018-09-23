@@ -1,4 +1,4 @@
-FROM ruby:2.5.1
+FROM ruby:2.4.1
 
 ENV LANG C.UTF-8
 
@@ -36,5 +36,3 @@ RUN bundle config build.nokogiri --use-system-libraries
 RUN bundle install
 RUN DB_ADAPTER=nulldb bundle exec rake -t assets:precompile
 VOLUME /app
-
-CMD ["bundle", "exec", "pumactl", "start"]
