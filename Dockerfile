@@ -1,38 +1,27 @@
-FROM ruby:2.4.1
+FROM ruby:2.5.1-alpine
 
 ENV LANG C.UTF-8
-
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-
-RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    nodejs \
-    yarn \
-    libpq-dev \
-    libfontconfig1 && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV ENTRYKIT_VERSION 0.4.0
-
-RUN wget https://github.com/progrium/entrykit/releases/download/v${ENTRYKIT_VERSION}/entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz \
-    && tar -xvzf entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz \
-    && rm entrykit_${ENTRYKIT_VERSION}_Linux_x86_64.tgz \
-    && mv entrykit /bin/entrykit \
-    && chmod +x /bin/entrykit \
-    && entrykit --symlink
+ENV RUNTIME_PACKAGES="libxml2-dev libxslt-dev libstdc++ tzdata mariadb-client-libs libpq nodejs ca-certificates"\
+  DEV_PACKAGES="build-base postgresql-dev"
 
 RUN mkdir /app
-
 WORKDIR /app
+
+ADD Gemfile /app/Gemfile
+ADD Gemfile.lock /app/Gemfile.lock
+
+RUN apk add --update --no-cache $RUNTIME_PACKAGES &&\
+  apk add --update\
+  --virtual build-dependencies\
+  --no-cache\
+  $DEV_PACKAGES &&\
+  gem install bundler --no-document &&\
+  bundle config build.nokogiri --use-system-libraries &&\
+  bundle install --without development test &&\
+  apk del build-dependencies
 
 ADD . /app
 
-ENV RAILS_ENV=production
+RUN DB_ADAPTER=nulldb bundle exec rake -t assets:precompile RAILS_ENV=production
 
-RUN bundle config build.nokogiri --use-system-libraries
-RUN bundle install
-RUN DB_ADAPTER=nulldb bundle exec rake -t assets:precompile
 VOLUME /app

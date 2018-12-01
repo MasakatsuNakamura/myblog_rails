@@ -1,76 +1,53 @@
-version: '2'
+version: '3'
 
 services:
 
   nginx:
-    image: 081979565122.dkr.ecr.ap-northeast-1.amazonaws.com/myblog_nginx:latest
+    build:
+      context: ./nginx
     ports:
       - "80:80"
-    volumes_from:
+    depends_on:
       - web
-    logging:
-      driver: awslogs
-      options:
-        awslogs-group: "/ecs/myblog"
-        awslogs-region: ap-northeast-1
-        awslogs-stream-prefix: nginx
-  web: #&app_base
-    image: 081979565122.dkr.ecr.ap-northeast-1.amazonaws.com/myblog:latest
-    command: sh -c "bundle exec rake db:create && bundle exec rake db:migrate && bundle exec rake db:seed && bundle exec puma"
-#    volumes:
-#      - ".:/app"
-#    volumes_from:
-#      - data
+    links:
+      - web
+    volumes:
+      - ".:/app"
+
+  web: &app_base
+    build: .
+    command: sh -c "bundle exec rake db:create && bundle exec rake db:migrate && bundle exec rake db:seed && bundle exec puma -e production"
+    volumes:
+      - ".:/app"
     environment:
+      RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: 1
+      RAILS_SERVE_STATIC_FILES: 1
       DATABASE_HOST: db
       DATABASE_PORT: 5432
       DATABASE_USER: postgres
       DATABASE_PASSWORD: password
-#    depends_on:
-#      - db
+    depends_on:
+      - db
     links:
       - db
-    logging:
-      driver: awslogs
-      options:
-        awslogs-group: "/ecs/myblog"
-        awslogs-region: ap-northeast-1
-        awslogs-stream-prefix: rails
 
-#  spring:
-#    <<: *app_base
-#    command: ["bundle", "exec", "spring", "server"]
-#    ports: []
-#    tty: false
-#    stdin_open: false
+  spring:
+    <<: *app_base
+    command: ["bundle", "exec", "spring", "server"]
+    ports: []
+    tty: false
+    stdin_open: false
 
   db:
-    image: postgres:10.3
+    image: postgres:9.6-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-#    volumes_from:
-#      - data
     ports:
       - "5432:5432"
-#    volumes:
-#      - postgres-data:/var/lib/postgres/data
-#  data:
-#    image: "busybox"
-#    volumes:
-#      - "db:/var/lib/postgresql/data"
-#      - "bundle:/usr/local/bundle"
-    logging:
-      driver: awslogs
-      options:
-        awslogs-group: "/ecs/myblog"
-        awslogs-region: ap-northeast-1
-        awslogs-stream-prefix: db
-#volumes:
-#  db:
-#    driver: local
-#  bundle:
-#    driver: local
-# volumes:
-#   postgres-data:
+    volumes:
+      - postgres-data:/var/lib/postgres/data
+volumes:
+  postgres-data:
+    driver: local
